@@ -1,0 +1,66 @@
+{
+  "$comment": "Project-specific anti-patterns: conventions of THIS design system's API that are accessibility-relevant but invisible to any generic tool. Same schema as the base catalogue. Over time this file becomes the accumulated value of the agent on a given project.",
+  "antiPatterns": [
+    {
+      "id": "bare-input-outside-formfield",
+      "name": "Bare <input> not wrapped in FormField",
+      "wcag": "3.3.2",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "<input\\b",
+        "scope": "file",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Is this raw <input> rendered inside the FormField component, or is FormField itself the file under review? FormField's own internal <input> is correct. Any other bare <input> bypasses the automatic label/id association and the aria-invalid handling.",
+      "why": "FormField generates the label/input association, the unique id, and the aria-invalid / aria-describedby wiring. A bare input silently opts out of all three, and the omission is invisible in review.",
+      "fix": "Wrap the input in <FormField label=\"...\">, or use the <Input> component, which is always rendered inside one.",
+      "examples": {
+        "bad": "<input type=\"email\" placeholder=\"Email\" />",
+        "good": "<FormField label=\"Email\"><Input type=\"email\" autoComplete=\"email\" /></FormField>"
+      },
+      "checklistRef": "Checklist 3 — 5. Base components"
+    },
+    {
+      "id": "modal-without-trigger-ref",
+      "name": "Modal used without a triggerRef",
+      "wcag": "2.4.3",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "<Modal(?=[\\s/>])(?![^>]*triggerRef)",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Does this <Modal> usage pass a triggerRef? Without it the modal cannot restore focus to the element that opened it, and the keyboard user is returned to the top of the document on close.",
+      "why": "On close, focus must return to the trigger. Without the ref the user is dropped at the start of the page and loses their position entirely.",
+      "fix": "Store a ref on the triggering button and pass it: <Modal triggerRef={buttonRef} … />",
+      "examples": {
+        "bad": "<Modal isOpen={open} onClose={close} title=\"Confirm\" />",
+        "good": "<Modal isOpen={open} onClose={close} title=\"Confirm\" triggerRef={buttonRef} />"
+      },
+      "checklistRef": "Checklist 1 — Keyboard and focus, item 7"
+    },
+    {
+      "id": "toast-outside-provider",
+      "name": "Toast rendered outside ToastProvider",
+      "wcag": "4.1.3",
+      "level": "AA",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "<Toast(?=[\\s/>])",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Is this Toast rendered through the ToastProvider's live region, or mounted directly? Only the provider holds a persistent live region; a directly mounted Toast announces nothing.",
+      "why": "The persistent live region lives in ToastProvider. A Toast mounted outside it renders visually but is never announced to screen readers.",
+      "fix": "Trigger toasts through the useToast() hook so the message is injected into the provider's persistent region.",
+      "examples": {
+        "bad": "<Toast message=\"Saved\" />",
+        "good": "const showToast = useToast(); showToast({ message: 'Saved', kind: 'success' });"
+      },
+      "checklistRef": "Checklist 3 — 5. Base components"
+    }
+  ]
+}

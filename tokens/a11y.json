@@ -1,0 +1,158 @@
+{
+  "color": {
+    "text": {
+      "primary": {
+        "$value": "{color.gray.900}",
+        "$type": "color",
+        "$description": "Main text — heading, body, label",
+        "$a11y": {
+          "wcag": "1.4.3",
+          "level": "AA",
+          "minContrast": 4.5,
+          "testedOn": ["color.surface.default", "color.surface.subtle"],
+          "ratios": { "surface.default": 16.75, "surface.subtle": 15.3 }
+        }
+      },
+      "secondary": {
+        "$value": "{color.gray.600}",
+        "$type": "color",
+        "$description": "Caption, helper text, metadata",
+        "$a11y": {
+          "wcag": "1.4.3",
+          "level": "AA",
+          "minContrast": 4.5,
+          "testedOn": ["color.surface.default"],
+          "ratios": { "surface.default": 7.23 }
+        }
+      },
+      "disabled": {
+        "$value": "{color.gray.400}",
+        "$type": "color",
+        "$a11y": {
+          "wcag": "1.4.3",
+          "level": "AA",
+          "exempt": true,
+          "exemptReason": "Disabled component — exempt from WCAG 1.4.3"
+        }
+      },
+      "error": {
+        "$value": "{color.red.600}",
+        "$type": "color",
+        "$a11y": {
+          "wcag": "1.4.3",
+          "level": "AA",
+          "minContrast": 4.5,
+          "testedOn": ["color.surface.default"],
+          "ratios": { "surface.default": 5.74 }
+        }
+      }
+    },
+    "border": {
+      "input": {
+        "$value": "{color.gray.400}",
+        "$type": "color",
+        "$a11y": {
+          "wcag": "1.4.11",
+          "level": "AA",
+          "minContrast": 3,
+          "ratios": { "surface.default": 4.62 }
+        }
+      },
+      "error": {
+        "$value": "{color.red.600}",
+        "$type": "color",
+        "$a11y": {
+          "wcag": "1.4.11",
+          "level": "AA",
+          "minContrast": 3,
+          "ratios": { "surface.default": 5.74 }
+        }
+      },
+      "disabled": {
+        "$value": "{color.gray.200}",
+        "$type": "color",
+        "$a11y": {
+          "wcag": "1.4.11",
+          "level": "AA",
+          "exempt": true,
+          "exemptReason": "Disabled component — explicitly exempt from WCAG 1.4.11",
+          "ratios": { "surface.default": 1.87 }
+        }
+      }
+    },
+    "focus": {
+      "ring": {
+        "$value": "{color.indigo.600}",
+        "$type": "color",
+        "$a11y": {
+          "wcag": "2.4.7",
+          "level": "AA",
+          "minContrast": 3,
+          "testedOn": ["color.surface.default"],
+          "ratios": { "surface.default": 8.59 },
+          "note": "On brand surfaces use color.focus.ring.on-brand"
+        }
+      },
+      "ring.on-brand": {
+        "$value": "#FFFFFF",
+        "$type": "color",
+        "$a11y": {
+          "wcag": "2.4.7",
+          "level": "AA",
+          "minContrast": 3,
+          "note": "Indigo ring is invisible on the indigo brand surface"
+        }
+      }
+    }
+  },
+  "space": {
+    "touch": {
+      "absolute-min": {
+        "$value": "24px",
+        "$type": "dimension",
+        "$a11y": {
+          "wcag": "2.5.8",
+          "level": "AA",
+          "note": "Absolute WCAG minimum — do not use unless unavoidable"
+        }
+      },
+      "min": {
+        "$value": "44px",
+        "$type": "dimension",
+        "$a11y": {
+          "wcag": "2.5.8",
+          "level": "AA",
+          "minValue": "24px",
+          "note": "44px is best practice (iOS HIG), 24px the legal minimum"
+        }
+      },
+      "gap": { "$value": "8px", "$type": "dimension", "$a11y": { "wcag": "2.5.8", "level": "AA" } }
+    },
+    "focus": {
+      "width": { "$value": "2px", "$type": "dimension", "$a11y": { "wcag": "2.4.11", "level": "AA" } },
+      "offset": { "$value": "2px", "$type": "dimension", "$a11y": { "wcag": "2.4.7", "level": "AA" } }
+    }
+  },
+  "duration": {
+    "interaction": {
+      "$value": "150ms",
+      "$type": "duration",
+      "$a11y": {
+        "wcag": "2.3.3",
+        "level": "AAA",
+        "reducedMotion": "0ms",
+        "note": "Automatic override via prefers-reduced-motion in tokens/motion.css"
+      }
+    },
+    "enter": {
+      "$value": "200ms",
+      "$type": "duration",
+      "$a11y": { "wcag": "2.3.3", "level": "AAA", "reducedMotion": "0ms" }
+    },
+    "exit": {
+      "$value": "150ms",
+      "$type": "duration",
+      "$a11y": { "wcag": "2.3.3", "level": "AAA", "reducedMotion": "0ms" }
+    }
+  }
+}

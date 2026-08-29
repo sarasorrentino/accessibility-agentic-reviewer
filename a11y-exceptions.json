@@ -1,0 +1,21 @@
+{
+  "$comment": "Human decisions on findings that required judgment. Keyed by file + component + WCAG criterion — never by line number, which drifts on the first refactor. reason and approvedBy are mandatory.",
+  "exceptions": [
+    {
+      "file": "src/components/Modal.tsx",
+      "component": "Modal",
+      "criterion": "2.1.2",
+      "reason": "Focus trap is intentional — the ARIA dialog pattern requires it. Escape handler and focus restore are both implemented.",
+      "approvedBy": "sara",
+      "date": "2026-08-29"
+    },
+    {
+      "file": "src/components/SortableList.tsx",
+      "component": "SortableList",
+      "criterion": "2.5.1",
+      "reason": "Drag is present but not the only path — onMoveUp/onMoveDown buttons and arrow-key handling provide the single-pointer alternative.",
+      "approvedBy": "sara",
+      "date": "2026-08-29"
+    }
+  ]
+}

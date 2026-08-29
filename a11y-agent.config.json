@@ -1,0 +1,9 @@
+{
+  "tokens": "./tokens/a11y.json",
+  "exceptions": "./a11y-exceptions.json",
+  "customAntiPatterns": "./a11y-patterns.json",
+  "baseBranch": "main",
+  "reportLanguage": "en",
+  "blockingThreshold": "critical",
+  "exemptionWarningThreshold": 15
+}
