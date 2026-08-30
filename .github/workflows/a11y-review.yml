@@ -64,21 +64,34 @@ jobs:
         run: |
           set -o pipefail
           # Two retries, then fail open with a visible notice (DESIGN.md §8.4).
+          claude --version || echo "claude --version failed"
+
           for attempt in 1 2 3; do
-            # --allowedTools takes space-separated tool names, not a comma
-            # list — a comma list silently degrades to a no-op run instead
-            # of erroring, which is what happened on the first real CI run.
-            # --permission-mode dontAsk is required in a non-interactive
-            # shell so approved tool calls actually execute instead of
-            # being silently denied (there is no TTY to prompt).
-            if claude -p "/a11y-review --base $BASE_BRANCH --ci" \
-                 --allowedTools Read Bash \
-                 --permission-mode dontAsk \
-                 --output-format text > report.md 2> review-error.log; then
+            echo "=== Attempt $attempt ==="
+            # Agent is required: the skill's core step spawns one subagent
+            # per file, and without it that step cannot execute.
+            # stderr is tee'd so the real error appears in the CI log —
+            # redirecting it to a file only made failures invisible.
+            set +e
+            claude -p "/a11y-review --base $BASE_BRANCH --ci" \
+              --allowedTools "Read,Bash,Agent" \
+              --permission-mode dontAsk \
+              --debug \
+              --output-format text \
+              > report.md 2> >(tee review-error.log >&2)
+            rc=$?
+            set -e
+
+            if [ "$rc" -eq 0 ]; then
               echo "status=ok" >> "$GITHUB_OUTPUT"
+              echo "=== report.md ==="
+              cat report.md
               exit 0
             fi
-            echo "Attempt $attempt failed, retrying..." >&2
+
+            echo "--- attempt $attempt failed, exit=$rc ---" >&2
+            echo "--- stdout captured in report.md ---" >&2
+            cat report.md >&2 || true
             sleep $((attempt * 10))
           done
 
