@@ -169,11 +169,19 @@ Three levels, collapsing WCAG severity and agent confidence onto **one axis**. T
 
 | Level | Meaning | Blocks merge |
 |---|---|---|
-| 🔴 **Critical** | Level A/AA violated with certainty | **Yes** |
+| 🔴 **Critical** | Level A/AA violated with certainty, **decidable from the file and its direct imports** | **Yes** |
 | 🟡 **Warning** | Best practice / AAA, or Level A/AA with material uncertainty | No |
-| 🔵 **Needs review** | Human judgment required | No |
+| 🔵 **Needs review** | Human judgment required, **or the evidence needed is not available to the agent** | No |
 
 🔵 findings remain visible in the PR comment as *requires a human decision before merge* — delegated to code review, not to the bot. If 🔵 were blocking, the only way to unblock would be to write an exemption, converting *needs review* into *needs silencing*.
+
+#### The decidability test
+
+A finding is 🔴 only if it can be established **using the file under review and its direct imports alone**. If confirming it would require evidence the agent was not given — the computed background behind an element, what a parent renders into `children`, a stylesheet absent from the repo, how a call site uses the component — it is **🔵 by construction**, however likely the violation appears.
+
+This rule exists because measurement found it necessary, not on principle. Runs 1 and 2 agreed on *detection* but disagreed on *severity* in 2 of 39 verdicts, and both disagreements flipped whether the finding blocked a merge (`EVAL-RUN-2.md` §1). Both were the same shape: a violation that is real *if* an unseen fact holds. One run assumed the likely value and called it 🔴; the other declined and called it 🔵. Under this test both runs land on 🔵, and the flip disappears.
+
+The cost is real and accepted: some genuine Level A/AA violations will be reported 🔵 and will not block, because the agent cannot prove them from what it can see. That is the correct trade for a gate — a blocking false positive is the one error the tool does not recover from, while a 🔵 costs one human glance.
 
 ### 6.2 Ambiguity is never resolved autonomously
 

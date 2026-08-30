@@ -57,6 +57,8 @@ The blocking policy (DESIGN.md §8.2) assumes 🔴 is a stable category. It is n
 
 Option 1 is the cheapest and addresses the actual cause. It is a change to the subagent prompt, not to the architecture.
 
+> **Adopted 2026-08-30.** Option 1 is now the rule, written into the subagent prompt in `SKILL.md` Step 4 as the *decidability test* and into `DESIGN.md` §6.1. Whether it actually removes the flips is unverified — that is what run 3 is for, and until run 3 measures it, the 5.1% figure above still stands as the last measurement.
+
 ## 5. Scores
 
 | Metric | Threshold | Run 1 | Run 2 | |
