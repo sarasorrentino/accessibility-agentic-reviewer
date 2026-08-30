@@ -102,14 +102,40 @@ jobs:
           done
 
           echo "status=failed-open" >> "$GITHUB_OUTPUT"
+
+          # Recognise the failure modes that have a specific, actionable
+          # cause, so the comment says what to do rather than dumping a log.
+          cause="The review could not complete after 3 attempts."
+          hint=""
+          if grep -qiE 'credit balance|insufficient.*credit|quota.*exceed|billing' review-error.log 2>/dev/null; then
+            cause="**The Anthropic API credit balance is exhausted.**"
+            hint="Top up credits in the [Anthropic Console](https://console.anthropic.com/settings/billing), then re-run this workflow."
+          elif grep -qiE 'rate.?limit|429' review-error.log 2>/dev/null; then
+            cause="**The Anthropic API rate limit was hit.**"
+            hint="Wait for the limit to reset and re-run this workflow."
+          elif grep -qiE 'authentication|invalid.*api.?key|401|403' review-error.log 2>/dev/null; then
+            cause="**Authentication failed.**"
+            hint="Check that the \`ANTHROPIC_API_KEY\` repository secret is set and valid."
+          fi
+
           {
-            echo "## ⚠️ Accessibility review did not run"
+            echo "## ❌ Accessibility review did not run"
             echo
-            echo "This PR has **not** been checked for accessibility."
+            echo "$cause"
+            echo
+            echo "> ⚠️ **This PR has NOT been checked for accessibility.**"
+            echo "> The check is not blocking — an infrastructure failure is not an"
+            echo "> accessibility violation — but nothing here has been verified."
+            echo "> Do not read the green check as a pass."
+            echo
+            if [ -n "$hint" ]; then echo "$hint"; echo; fi
+            echo "<details><summary>Error output</summary>"
             echo
             echo '```'
-            tail -20 review-error.log || true
+            grep -viE '^\[DEBUG\]|^\s*$' review-error.log 2>/dev/null | tail -30 || tail -30 review-error.log || true
             echo '```'
+            echo
+            echo "</details>"
           } > report.md
 
       - name: Post or update PR comment
@@ -155,7 +181,19 @@ jobs:
         if: always()
         run: |
           if [ ! -f report.md ] || [ "${{ steps.review.outputs.status }}" = "failed-open" ]; then
-            echo "::warning::Accessibility review did not run. PR not checked."
+            # Loud but non-blocking: ::error:: surfaces a red annotation on
+            # the run and in the PR's checks view, while exit 0 keeps the
+            # merge unblocked — an outage is not an accessibility violation
+            # (DESIGN.md §8.4). A silent green pass here would be worse:
+            # it reads as "reviewed and clean" when nothing was reviewed.
+            echo "::error::Accessibility review DID NOT RUN — this PR has not been checked. See the PR comment for the cause."
+            {
+              echo "## ❌ Accessibility review did not run"
+              echo
+              echo "This PR has **not** been checked for accessibility."
+              echo "The check is non-blocking by design, so the merge is not held —"
+              echo "but do not read it as a pass. See the PR comment for the cause."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           # Blocks only on critical findings introduced by this PR.
