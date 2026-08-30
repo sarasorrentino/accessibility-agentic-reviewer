@@ -1,0 +1,124 @@
+name: Accessibility Review
+
+# Runs on every push to a branch with an open PR (DESIGN.md §5.1).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '**/*.tsx'
+      - '**/*.jsx'
+      - '**/tokens/**'
+      - 'a11y-agent.config.json'
+      - 'a11y-exceptions.json'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  # A new push supersedes the in-flight review for the same PR.
+  group: a11y-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the merge base resolves and the diff covers the
+          # whole PR rather than the last push.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Verdict cache, keyed by file content (DESIGN.md §8.3). A push touching
+      # one file re-judges one file and reuses the rest.
+      - name: Restore verdict cache
+        uses: actions/cache@v4
+        with:
+          path: .a11y-cache
+          key: a11y-verdicts-${{ github.event.pull_request.number }}-${{ github.sha }}
+          restore-keys: |
+            a11y-verdicts-${{ github.event.pull_request.number }}-
+            a11y-verdicts-
+
+      # The skill itself is committed in-repo at .claude/skills/a11y-review —
+      # no install/copy step needed, Claude Code discovers it automatically.
+      - name: Install Claude Code CLI
+        run: curl -fsSL https://downloads.claude.ai/install.sh | bash
+
+      - name: Run accessibility review
+        id: review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -o pipefail
+          # Two retries, then fail open with a visible notice (DESIGN.md §8.4).
+          for attempt in 1 2 3; do
+            if claude -p "/a11y-review --base $BASE_BRANCH --ci" \
+                 --allowedTools "Read,Bash" \
+                 --output-format text > report.md 2> review-error.log; then
+              echo "status=ok" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Attempt $attempt failed, retrying..." >&2
+            sleep $((attempt * 10))
+          done
+
+          echo "status=failed-open" >> "$GITHUB_OUTPUT"
+          {
+            echo "## ⚠️ Accessibility review did not run"
+            echo
+            echo "This PR has **not** been checked for accessibility."
+            echo
+            echo '```'
+            tail -20 review-error.log || true
+            echo '```'
+          } > report.md
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('report.md', 'utf8');
+            const marker = '<!-- a11y-review-agent -->';
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments, { owner, repo, issue_number }
+            );
+            const existing = comments.find(c => c.body.includes(marker));
+            const payload = `${marker}\n${body}`;
+
+            // Update in place — never append, or a busy branch accumulates
+            // a wall of stale reports (DESIGN.md §8.1).
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body: payload,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body: payload,
+              });
+            }
+
+      - name: Set check status
+        run: |
+          if [ "${{ steps.review.outputs.status }}" = "failed-open" ]; then
+            echo "::warning::Accessibility review did not run. PR not checked."
+            exit 0
+          fi
+          # Blocks only on critical findings introduced by this PR.
+          # Pre-existing debt is reported but never blocks (DESIGN.md §8.2).
+          if grep -q '^❌ BLOCKING' report.md; then
+            echo "::error::Critical accessibility issues introduced by this PR."
+            exit 1
+          fi
+          echo "No critical issues introduced."

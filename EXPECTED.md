@@ -32,8 +32,9 @@ Do not show this file to the agent during an evaluation run.
 | 6 | 19 | 🔴 | 3.3.2 A | Placeholder is the only label |
 | 7 | 15 | 🔴 | 1.3.5 AA | No `autoComplete` on a personal-data email field |
 | 8 | 23 | 🔴 | 3.3.1 A | Error not linked via `aria-invalid` / `aria-describedby` |
-| 9 | 21–23 | 🔴 | 1.4.1 A | Error signalled by colour alone, no icon or text cue |
-| 10 | 23 | 🟡 | 1.4.3 AA | Raw `text-red-500` bypasses the token system |
+| 9 | 23 | 🟡 | 1.4.3 AA | Raw `text-red-500` bypasses the token system |
+
+> **Corrected after run 1.** A colour-only-state violation was originally listed here. It was wrong: line 23 renders the error text under the same `error` condition, so colour is not the only channel and WCAG 1.4.1 is satisfied. The correct verdict is `false-positive`.
 
 ### ModalLegacy.tsx
 
@@ -83,9 +84,14 @@ The agent fails this section if it either confirms or dismisses these. Correct b
 | Case | File | Why it is ambiguous |
 |---|---|---|
 | Colour-only error state | `CardLegacy.tsx:20` | The text alternative could plausibly be rendered by the parent; not decidable from this file |
-| 16px drag handle | `SortableListLegacy.tsx:24` | A `span` with no handler — may be decorative rather than the hit area |
-| Keymap at container level | `Dropdown.tsx:65` | `onKeyDown` sits on the wrapper, not the listbox; correct but unconventional |
-| Focus restore on unmount | `ModalLegacy.tsx:21` | Whether a parent restores focus is not visible from this file |
+| No close affordance | `ModalLegacy.tsx` | Whether an exit path exists depends on what each call site passes as `children` |
+
+> **Corrected after run 1.** Two further cases were listed here and were not in fact ambiguous — both are decidable from the source, and the agent decided them correctly:
+>
+> - `SortableListLegacy.tsx:24` — the 16px `span` carries no handlers; `draggable` and all three drag handlers sit on the full-width `<li>`, so the row is the target. Correct verdict: `false-positive`.
+> - `Dropdown.tsx:65` — the keymap is on the wrapper `div` and is reachable by event bubbling from the only focusable element. Correct verdict: `false-positive` for *this* pattern. (A separate, real keyboard defect exists in that file at line 37 — see `EVAL-RUN-1.md` §4.)
+>
+> Deferring a decidable case is not a success. The agent should verify when the source allows it and reserve 🔵 for what it genuinely cannot resolve.
 
 ---
 
@@ -118,8 +124,10 @@ Run the fixture three times.
 |---|---|---|
 | Recall (blocking) | Found 🔴 in §A ÷ total 🔴 in §A | ≥ 90% |
 | Blocking false positives | Count of 🔴 raised on §C | **0** |
-| Ambiguity handling | §B cases correctly marked 🔵 | 4 / 4 |
+| Ambiguity handling | §B cases correctly marked 🔵 | 2 / 2 |
 | Variance | Findings present in only 1 of 3 runs | 🔵 only |
+
+An `ai-only` 🔴 raised on a file listed as conforming is **not automatically a false positive** — run 1 produced one that was a genuine bug in the fixture. Verify by hand before scoring it against the agent; if it is real, fix the fixture and record it here.
 
 A single 🔴 on §C fails the evaluation regardless of recall. The asymmetry is deliberate: a blocking false positive is the one error the tool does not recover from.
 

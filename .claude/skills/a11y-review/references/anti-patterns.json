@@ -1,0 +1,371 @@
+{
+  "$schema": "https://a11y-review-agent/anti-patterns.schema.json",
+  "version": "1.0.0",
+  "source": "Derived from Developer Accessibility Checklist (Checklist 1 & 2), WCAG 2.1/2.2 Level AA",
+  "note": "Detection patterns are deliberately over-inclusive. They generate CANDIDATES. Entries with requiresAiJudgment=true must be adjudicated by the AI stage before appearing in the report as findings.",
+  "antiPatterns": [
+    {
+      "id": "outline-none-no-replacement",
+      "name": "outline: none without a visible replacement",
+      "wcag": "2.4.7",
+      "level": "AA",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "outline\\s*:\\s*['\"]?\\s*(none|0)\\b",
+        "scope": "file",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Is there a visible focus replacement (box-shadow, custom outline, ring) applied to the same element via :focus-visible, either in this file or in an imported stylesheet/component? A reset that removes only the browser default AND is paired with a :focus-visible rule is conforming.",
+      "why": "Removing the focus outline without a replacement makes the component invisible to keyboard users. Focus becomes untrackable and the interface unusable without a mouse.",
+      "fix": "Never remove focus styling globally. Reset :focus only, and define :focus-visible with outline: var(--space-focus-width) solid var(--color-focus-ring) and outline-offset: var(--space-focus-offset).",
+      "examples": {
+        "bad": "button:focus { outline: none; }",
+        "good": ":focus { outline: none; }\n:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }"
+      },
+      "checklistRef": "Checklist 2 — Colour, item 3"
+    },
+    {
+      "id": "pointer-down-primary-handler",
+      "name": "onPointerDown / onMouseDown as primary action handler",
+      "wcag": "2.5.2",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "on(PointerDown|MouseDown|TouchStart)\\s*=",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Does this handler execute the component's primary action, or is it legitimate low-level interaction (starting a drag, opening a press state, tracking a gesture)? Only primary actions are violations — drag initiation is a valid use of onPointerDown.",
+      "why": "Down-events fire immediately and cannot be aborted. A user who presses by mistake and drags away to cancel still triggers the action. WCAG 2.5.2 requires the up-event, on the same element, for primary actions.",
+      "fix": "Use onClick for primary actions. Reserve onPointerDown for drag initiation and press-state feedback. Destructive actions additionally route through a confirmation dialog.",
+      "examples": {
+        "bad": "<button onPointerDown={handleDelete}>Delete</button>",
+        "good": "<button onClick={handleDelete}>Delete</button>"
+      },
+      "checklistRef": "Checklist 2 — Touch and handlers, item 1"
+    },
+    {
+      "id": "clickable-non-interactive-element",
+      "name": "Clickable div/span without role and keyboard handler",
+      "wcag": "2.1.1",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "<(div|span|li|td|section|article)[^>]*onClick",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Does the element carry BOTH an interactive role (role=\"button\"/\"link\") AND tabIndex={0} AND an onKeyDown handling Enter and Space? All three are required. If any is missing, it is a violation. Note whether a native <button> or <a> would have been possible — prefer that in the fix.",
+      "why": "Keyboard and screen-reader users cannot reach or activate the element. A click handler on a non-interactive element is invisible to assistive technology, which announces no role and offers no way to trigger it.",
+      "fix": "Use a native <button type=\"button\"> or <a href>. If markup constraints prevent it, add role=\"button\", tabIndex={0}, and an onKeyDown handler activating on Enter and Space.",
+      "examples": {
+        "bad": "<div onClick={handleSelect}>Select</div>",
+        "good": "<button type=\"button\" onClick={handleSelect}>Select</button>"
+      },
+      "checklistRef": "Checklist 2 — Keyboard, item 1"
+    },
+    {
+      "id": "placeholder-as-label",
+      "name": "Placeholder used as the only label",
+      "wcag": "3.3.2",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "placeholder\\s*=",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Does the input also have a persistent label — a <label htmlFor>, an aria-label, an aria-labelledby, or a FormField wrapper that supplies one? A placeholder alongside a real label is fine. A placeholder alone is a violation. A visually-hidden (sr-only) label IS a real label and is conforming.",
+      "why": "Placeholder text disappears once the user starts typing, removing the field's identity precisely when it is needed. It is also frequently ignored by screen readers and fails contrast requirements.",
+      "fix": "Always render a persistent label associated via htmlFor/id, or wrap the input in FormField which generates the association. Use sr-only when the label must be visually hidden. Keep the placeholder only as an example of the expected format.",
+      "examples": {
+        "bad": "<input placeholder=\"Email\" />",
+        "good": "<FormField label=\"Email\"><Input placeholder=\"name@example.com\" /></FormField>"
+      },
+      "checklistRef": "Checklist 2 — ARIA, item 1"
+    },
+    {
+      "id": "positive-tabindex",
+      "name": "tabIndex greater than 0",
+      "wcag": "2.4.3",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "tabIndex\\s*=\\s*\\{?\\s*[1-9]",
+        "requiresAiJudgment": false
+      },
+      "why": "A positive tabIndex removes the element from the natural document order and places it ahead of every element with tabIndex 0. On a real page this produces an unpredictable focus order that no longer matches the visual layout.",
+      "fix": "Use tabIndex={0} to make an element focusable in document order, or tabIndex={-1} to make it programmatically focusable only. If the tab order is wrong, fix the DOM order instead.",
+      "examples": {
+        "bad": "<input tabIndex={3} />",
+        "good": "<input tabIndex={0} />"
+      },
+      "checklistRef": "Checklist 2 — Keyboard, item 2"
+    },
+    {
+      "id": "conditional-live-region",
+      "name": "Live region mounted conditionally instead of persistently",
+      "wcag": "4.1.3",
+      "level": "AA",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "(&&|\\?)[\\s\\S]{0,120}?(aria-live|role\\s*=\\s*[\"'](status|alert)[\"'])",
+        "scope": "file",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Is the element carrying aria-live / role=status / role=alert itself mounted conditionally, or is only its CONTENT conditional? A permanently mounted region whose text changes is correct. A region that appears together with its message is a violation.",
+      "why": "Screen readers only announce changes to live regions that already existed in the DOM. A region mounted at the same moment as its message is frequently missed entirely, so the user never hears the error or confirmation.",
+      "fix": "Keep the live region permanently in the DOM (empty when idle) and inject text into it. A ToastProvider with a persistent sr-only region is the design system pattern for this.",
+      "examples": {
+        "bad": "{error && <div role=\"alert\">{error}</div>}",
+        "good": "<div role=\"alert\" aria-live=\"assertive\" className=\"sr-only\">{error}</div>"
+      },
+      "checklistRef": "Checklist 2 — ARIA, item 4"
+    },
+    {
+      "id": "icon-only-no-accessible-name",
+      "name": "Icon-only control without an accessible name",
+      "wcag": "4.1.2",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "<(button|IconButton|a)\\b(?![^>]*(aria-label|aria-labelledby|title))[^>]*>\\s*\\{?\\s*<[A-Z]",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Does the control render any text content accessible to assistive technology — visible text, sr-only text, aria-label, or aria-labelledby? An icon alone provides no accessible name. Check whether the icon component itself injects a title or aria-label.",
+      "why": "A control with no accessible name is announced as an unlabelled button. Voice-control users cannot address it and screen-reader users cannot know what it does.",
+      "fix": "Add aria-label describing the ACTION, not the icon (\"Delete item\", not \"Trash icon\"). In the design system, IconButton should declare aria-label as a required TypeScript prop so the type checker enforces it.",
+      "examples": {
+        "bad": "<button onClick={onClose}><IconX /></button>",
+        "good": "<button onClick={onClose} aria-label=\"Close dialog\"><IconX aria-hidden=\"true\" /></button>"
+      },
+      "checklistRef": "Checklist 1 — Semantics and ARIA, item 4"
+    },
+    {
+      "id": "colour-only-state",
+      "name": "State communicated by colour alone",
+      "wcag": "1.4.1",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "(border|bg|text)-(red|green|amber|yellow)-\\d{3}|color\\.(border|text)\\.(error|success|warning)",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Is there a NON-CHROMATIC indicator accompanying this colour — an icon, a text message, a pattern, a change of shape? Check this file and its direct imports. If the alternative could plausibly be rendered by a parent component, classify as needs-review rather than deciding either way.",
+      "why": "Users with colour vision deficiencies, and anyone on a monochrome or high-contrast display, receive no information at all. Roughly 8% of men have some form of colour vision deficiency.",
+      "fix": "Always pair colour with a second channel: an icon plus text for error states, an icon or checkmark for success, a text label for status badges.",
+      "examples": {
+        "bad": "<input className=\"border-red-500\" />",
+        "good": "<Input state=\"error\" errorMessage=\"Required field\" icon={<IconAlertCircle />} />"
+      },
+      "checklistRef": "Checklist 2 — Colour, item 2"
+    },
+    {
+      "id": "hardcoded-motion",
+      "name": "Hardcoded duration instead of a motion token",
+      "wcag": "2.3.3",
+      "level": "AAA",
+      "severity": "warning",
+      "detection": {
+        "type": "pattern",
+        "pattern": "(transition|animation)[^;\\n]*\\b\\d{2,4}m?s\\b",
+        "requiresAiJudgment": false
+      },
+      "why": "A hardcoded duration does not respond to the prefers-reduced-motion override defined at :root. Users with vestibular sensitivity continue to receive the full animation despite having asked the system to reduce motion.",
+      "fix": "Use the duration tokens: var(--duration-interaction), var(--duration-enter), var(--duration-exit). The single @media (prefers-reduced-motion: reduce) block at :root then zeroes them everywhere at once.",
+      "examples": {
+        "bad": "transition: 'opacity 200ms ease-out'",
+        "good": "transition: 'opacity var(--duration-enter) var(--easing-default)'"
+      },
+      "checklistRef": "Checklist 1 — Motion, item 1"
+    },
+    {
+      "id": "fixed-width-container",
+      "name": "Fixed pixel width on a layout container",
+      "wcag": "1.4.10",
+      "level": "AA",
+      "severity": "warning",
+      "detection": {
+        "type": "pattern",
+        "pattern": "(width|minWidth|maxWidth)\\s*:\\s*['\"]?\\d{3,}px",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Is this a layout container (modal, panel, page section, card grid) or a small fixed-size element (avatar, icon, thumbnail)? Only containers that must reflow are violations. Check whether the value is a max-width paired with a relative unit, which is conforming.",
+      "why": "At 400% browser zoom a fixed-width container forces bidirectional scrolling, which WCAG 1.4.10 prohibits. Content becomes unreadable for low-vision users relying on zoom.",
+      "fix": "Use relative widths with a max-width fallback: maxWidth: 'min(600px, 95vw)'. Test every component at 400% zoom before release.",
+      "examples": {
+        "bad": "<div style={{ width: '800px' }}>",
+        "good": "<Modal maxWidth=\"min(600px, 95vw)\" />"
+      },
+      "checklistRef": "Checklist 3 — 6. Layout and responsiveness"
+    },
+    {
+      "id": "raw-colour-utility",
+      "name": "Raw colour utility class instead of a semantic token",
+      "wcag": "1.4.3",
+      "level": "AA",
+      "severity": "warning",
+      "detection": {
+        "type": "pattern",
+        "pattern": "className=[\"'][^\"']*\\b(text|bg)-(gray|slate|zinc|neutral|stone|blue|indigo|red|green)-\\d{2,3}",
+        "requiresAiJudgment": false
+      },
+      "why": "A raw utility class bypasses the token system, so the contrast ratio of that specific text/background pair has never been verified. The token system exists precisely to guarantee that every combination in use is documented and compliant.",
+      "fix": "Use the semantic tokens: color.text.primary, color.text.secondary, color.surface.default. Each carries its documented contrast ratio against the backgrounds it is approved for.",
+      "examples": {
+        "bad": "<p className=\"text-gray-400 bg-white\">",
+        "good": "<Text variant=\"secondary\">"
+      },
+      "checklistRef": "Checklist 2 — Colour, item 1"
+    },
+    {
+      "id": "missing-autocomplete",
+      "name": "Missing autocomplete on a personal-data field",
+      "wcag": "1.3.5",
+      "level": "AA",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "<(input|Input)\\b(?![^>]*autoComplete)[^>]*(type\\s*=\\s*[\"'](email|tel|password)[\"']|name\\s*=\\s*[\"'][^\"']*(email|phone|tel|name|address|zip|postal|city|country)[^\"']*[\"'])",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Does this field collect personal data about the user themselves (their own email, phone, name, address)? Fields collecting data about OTHER people, or search fields, are out of scope for 1.3.5 and are not violations.",
+      "why": "Without the autocomplete attribute, users with motor or cognitive disabilities cannot rely on browser autofill and must retype personal data manually every time, increasing both effort and error rate.",
+      "fix": "Add the standard autocomplete token: email, tel, given-name, family-name, street-address, postal-code, country-name. Document the accepted values in the Input component's TypeScript API.",
+      "examples": {
+        "bad": "<Input type=\"email\" name=\"email\" />",
+        "good": "<Input type=\"email\" name=\"email\" autoComplete=\"email\" />"
+      },
+      "checklistRef": "Checklist 2 — ARIA, item 3"
+    },
+    {
+      "id": "focus-trap-no-exit",
+      "name": "Focus trap without a keyboard exit path",
+      "wcag": "2.1.2",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "(focus-trap|FocusTrap|focusTrap|key\\s*===\\s*['\"]Tab['\"])",
+        "scope": "file",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Is this an intentional modal dialog trap? A modal (role=\"dialog\" aria-modal=\"true\") is REQUIRED to trap focus and this is conforming — provided it also closes on Escape and restores focus to the trigger. Verify all three: trap, Escape handler, focus restore. A trap in a non-modal component (tooltip, popover, dropdown) is always a violation.",
+      "why": "A keyboard user who cannot leave a component is stranded on the page with no way forward. In a modal the trap is required by the ARIA dialog pattern, but only when Escape provides the exit.",
+      "fix": "In a Modal: keep the trap, add an Escape handler, and restore focus to the trigger element on close via a stored ref. In non-modal components: remove the trap entirely.",
+      "examples": {
+        "bad": "// Modal traps Tab, no Escape handler, no focus restore",
+        "good": "useEffect(() => { if (!isOpen) triggerRef.current?.focus(); }, [isOpen]);\n// + Escape handler + focus-trap-react"
+      },
+      "checklistRef": "Checklist 2 — Keyboard, item 3"
+    },
+    {
+      "id": "redundant-aria-role",
+      "name": "Redundant ARIA role on a native element",
+      "wcag": "4.1.2",
+      "level": "A",
+      "severity": "warning",
+      "detection": {
+        "type": "pattern",
+        "pattern": "<(button[^>]*role\\s*=\\s*[\"']button|a\\b[^>]*role\\s*=\\s*[\"']link|nav[^>]*role\\s*=\\s*[\"']navigation|main[^>]*role\\s*=\\s*[\"']main|ul[^>]*role\\s*=\\s*[\"']list)[\"']",
+        "requiresAiJudgment": false
+      },
+      "why": "The role duplicates the element's implicit semantics. It is not harmful in itself, but it signals uncertainty about native semantics and tends to accompany real ARIA misuse elsewhere in the same component.",
+      "fix": "Remove the redundant role. Native elements already expose the correct role to assistive technology.",
+      "examples": {
+        "bad": "<button role=\"button\">Save</button>",
+        "good": "<button>Save</button>"
+      },
+      "checklistRef": "Checklist 1 — Semantics and ARIA, item 2"
+    },
+    {
+      "id": "small-touch-target",
+      "name": "Interactive target below the minimum touch size",
+      "wcag": "2.5.8",
+      "level": "AA",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "(width|height|w-|h-|size)\\s*[:=]?\\s*['\"]?\\{?\\s*(1[0-9]|2[0-3])(px)?\\b",
+        "maxMatches": 2,
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Is the small dimension applied to an INTERACTIVE element's hit area, or only to a decorative icon inside a larger interactive parent? A 16px icon inside a 44px button is conforming. Check for padding, min-width/min-height, or a ::before expansion that brings the hit area up to size.",
+      "why": "WCAG 2.5.8 requires at least 24x24 CSS pixels for interactive targets. Below that, users with motor impairments and anyone on a touch device miss the target repeatedly. 44px is the practical minimum (iOS HIG).",
+      "fix": "Apply min-width and min-height of var(--space-touch-min) (44px) to the interactive element. When the visual element must stay smaller, expand the hit area with a ::before pseudo-element so layout is unaffected.",
+      "examples": {
+        "bad": ".icon-button { width: 16px; height: 16px; }",
+        "good": ".icon-button { min-width: var(--space-touch-min); min-height: var(--space-touch-min); }"
+      },
+      "checklistRef": "Checklist 1 — Touch and interaction, item 1"
+    },
+    {
+      "id": "drag-only-interaction",
+      "name": "Drag or swipe as the only way to perform an action",
+      "wcag": "2.5.1",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "(draggable|onDrag|onDrop|useSortable|useDraggable|onSwipe|onTouchMove)",
+        "scope": "file",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Is there a non-path-based alternative for the same action — move up/down buttons, keyboard arrow handling, a menu with reorder options? Drag is acceptable as long as it is not the ONLY way. Check both this file and its direct imports for the alternative.",
+      "why": "Path-based gestures are impossible for users with motor impairments, users of switch controls or head pointers, and keyboard-only users. The functionality becomes entirely unavailable to them.",
+      "fix": "Expose an equivalent single-pointer alternative: onMoveUp/onMoveDown buttons on a sortable list, arrow-key support on a slider, click-to-select alongside drag-to-upload.",
+      "examples": {
+        "bad": "<li draggable onDragStart={...}>{item.label}</li>",
+        "good": "<SortableListItem showMoveButtons onMoveUp={handleMoveUp} onMoveDown={handleMoveDown} />"
+      },
+      "checklistRef": "Checklist 1 — Touch and interaction, item 4"
+    },
+    {
+      "id": "error-not-programmatically-linked",
+      "name": "Error message not linked to its field",
+      "wcag": "3.3.1",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "\\b(error|isInvalid|hasError)\\b[\\s\\S]{0,800}?<(input|Input|textarea|Textarea|select|Select)\\b|<(input|Input|textarea|Textarea|select|Select)\\b[\\s\\S]{0,800}?\\b(error|isInvalid|hasError)\\b",
+        "scope": "file",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "When this component renders an error, does the input carry aria-invalid and aria-describedby pointing at the error element's id? Both are required. If the component delegates rendering to FormField, check whether FormField supplies them.",
+      "why": "Without the programmatic link, a screen-reader user hears the field name but never the reason it was rejected. They are told something is wrong with no indication of what.",
+      "fix": "Set aria-invalid={!!error} on the input and aria-describedby={error ? errorId : undefined}, rendering the message in an element with that id and role=\"alert\".",
+      "examples": {
+        "bad": "<input /> {error && <span className=\"text-red-500\">{error}</span>}",
+        "good": "<input aria-invalid={!!error} aria-describedby={error ? 'email-error' : undefined} />\n<span id=\"email-error\" role=\"alert\">{error}</span>"
+      },
+      "checklistRef": "Checklist 2 — ARIA, item 2"
+    },
+    {
+      "id": "custom-widget-no-keymap",
+      "name": "Custom widget without the expected ARIA keymap",
+      "wcag": "2.1.1",
+      "level": "A",
+      "severity": "critical",
+      "detection": {
+        "type": "pattern",
+        "pattern": "role\\s*=\\s*[\"'](listbox|combobox|menu|tablist|slider|tree|grid)[\"']",
+        "scope": "file",
+        "requiresAiJudgment": true
+      },
+      "judgmentQuestion": "Does the component implement the keyboard interaction required by this ARIA pattern? Listbox/menu/tablist need Arrow keys plus Enter; combobox and menu additionally need Escape; slider needs Arrow keys plus Home/End. Adopting the role without the keymap is a violation.",
+      "why": "An ARIA role is a promise to assistive technology about how the component behaves. Screen-reader users are told this is a listbox and will press Arrow keys expecting navigation. If nothing happens, the component is unusable and actively misleading.",
+      "fix": "Implement the full keymap for the declared pattern, and document it in the design system: Arrow keys for internal navigation, Enter/Space to activate, Escape to close or cancel.",
+      "examples": {
+        "bad": "<ul role=\"listbox\">{items.map(i => <li role=\"option\" onClick={...} />)}</ul>",
+        "good": "onKeyDown={(e) => {\n  if (e.key === 'ArrowDown') focusNextItem();\n  if (e.key === 'ArrowUp') focusPrevItem();\n  if (e.key === 'Escape') close();\n  if (e.key === 'Enter') select();\n}}"
+      },
+      "checklistRef": "Checklist 2 — Keyboard, item 5"
+    }
+  ]
+}
