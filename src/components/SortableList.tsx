@@ -17,6 +17,10 @@ export function SortableList({ items, onMoveUp, onMoveDown, onReorder }: Sortabl
   return (
     <ul className="sortable-list">
       {items.map((item, index) => (
+        // Drag is an enhancement, never the only path: the move up/down
+        // buttons below satisfy WCAG 2.5.1. Recorded in a11y-exceptions.json
+        // under SortableList / 2.5.1 — the rule has no knowledge of that file.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
         <li
           key={item.id}
           draggable

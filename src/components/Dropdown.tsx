@@ -47,6 +47,11 @@ export function Dropdown({ label, options, value, onChange }: DropdownProps) {
   };
 
   return (
+    // Composite widget: the listbox keymap is handled once on the wrapper and
+    // reached by event bubbling from the trigger, which is the only focusable
+    // element. The wrapper itself is not interactive and takes no role — the
+    // rule cannot distinguish this from a genuinely clickable div.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div className="dropdown" onKeyDown={handleKeyDown}>
       <button
         ref={buttonRef}

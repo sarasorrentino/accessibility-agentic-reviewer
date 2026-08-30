@@ -44,10 +44,14 @@ If `files` is empty, stop and report: *No component files changed — nothing to
 ## Step 2 — Run the linter, if available
 
 ```bash
-npx eslint --no-eslintrc --plugin jsx-a11y --format json <files> 2>/dev/null || echo "SKIPPED"
+npx eslint --format json <files> 2>/dev/null || echo "SKIPPED"
 ```
 
+The project's `eslint.config.js` is discovered automatically and carries the `jsx-a11y` rules. Do not pass `--no-eslintrc` or `--plugin` — those are ESLint 8 flags and fail against flat config.
+
 If it fails or is not installed, continue without it and record that stage 1 was skipped — the report header must say so. Never block on the linter's absence.
+
+ESLint findings are **candidates like any other**: adjudicate them in Step 4. It has no knowledge of `a11y-exceptions.json`, so it will report things the project has already decided are acceptable.
 
 ## Step 3 — Load project context
 

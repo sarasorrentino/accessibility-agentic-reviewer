@@ -1,0 +1,84 @@
+name: Accessibility Checks
+
+# Stages 1 and 2 of the review pipeline: deterministic, free, and fast.
+# They run on every push, independently of the AI review in a11y-review.yml,
+# which costs API credits and can therefore fail for reasons unrelated to
+# accessibility. Keeping them in separate workflows means a credit outage
+# never takes the mechanical checks down with it.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a11y-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: ESLint (jsx-a11y) + pattern scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      # Stage 1 — mechanically decidable rules.
+      - name: ESLint jsx-a11y
+        run: npm run lint
+
+      # Stage 2 — the project's own anti-pattern catalogue. Reports only;
+      # adjudication of these candidates is the AI review's job.
+      - name: Pattern scan
+        run: |
+          node .claude/skills/a11y-review/scripts/scan-patterns.mjs \
+            --files $(git ls-files 'src/**/*.tsx' | tr '\n' ' ') \
+            > scan.json
+          node -e "
+            const d = require('./scan.json');
+            const c = d.counts;
+            console.log(\`\${c.candidates} candidates across \${c.files} files\`);
+            console.log(\`  \${c.deterministic} deterministic, \${c.needsAiJudgment} need AI judgment\`);
+          "
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pattern-scan
+          path: scan.json
+
+  axe:
+    name: axe-core over every story
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # Storybook 10's test-runner has axe built in and reads each story's
+      # parameters.a11y — so `test: 'error'` fails the run and the
+      # deliberately-violating *Legacy stories ('todo') only warn.
+      - name: Build Storybook
+        run: npm run build-storybook --quiet
+
+      - name: Run a11y tests
+        run: |
+          npx concurrently -k -s first -n "SB,TEST" \
+            "npx http-server storybook-static --port 6006 --silent" \
+            "npx wait-on tcp:6006 && npm run test:a11y:ci"

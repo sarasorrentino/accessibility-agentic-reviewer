@@ -1,3 +1,5 @@
 node_modules/
 dist/
 .a11y-cache/
+storybook-static/
+scan.json
