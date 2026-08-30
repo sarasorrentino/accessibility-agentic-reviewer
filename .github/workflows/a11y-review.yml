@@ -142,39 +142,71 @@ jobs:
         # Always post — a comment explaining what happened beats a silent
         # red X when an earlier step fails for a reason not handled above.
         if: always()
+        env:
+          REVIEW_STATUS: ${{ steps.review.outputs.status }}
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            let body;
+
+            // Two separate comments, deliberately. A failed run must never
+            // overwrite a successful review: losing a good report because a
+            // later run ran out of credits is worse than an extra comment.
+            const REPORT_MARKER  = '<!-- a11y-review-agent -->';
+            const FAILURE_MARKER = '<!-- a11y-review-agent:failure -->';
+
+            let body, failed;
             try {
               body = fs.readFileSync('report.md', 'utf8');
+              failed = process.env.REVIEW_STATUS !== 'ok';
             } catch {
-              body = '## ⚠️ Accessibility review did not run\n\n' +
+              body = '## ❌ Accessibility review did not run\n\n' +
                 'This PR has **not** been checked for accessibility — ' +
                 'the CI job failed before a report could be generated. ' +
                 'Check the workflow run logs for the actual error.';
+              failed = true;
             }
-            const marker = '<!-- a11y-review-agent -->';
+
             const { owner, repo } = context.repo;
             const issue_number = context.payload.pull_request.number;
-
             const comments = await github.paginate(
               github.rest.issues.listComments, { owner, repo, issue_number }
             );
-            const existing = comments.find(c => c.body.includes(marker));
-            const payload = `${marker}\n${body}`;
+            const find = (m) => comments.find(c => c.body.includes(m));
 
-            // Update in place — never append, or a busy branch accumulates
-            // a wall of stale reports (DESIGN.md §8.1).
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner, repo, comment_id: existing.id, body: payload,
-              });
+            const upsert = async (marker, text) => {
+              const existing = find(marker);
+              const payload = `${marker}\n${text}`;
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner, repo, comment_id: existing.id, body: payload,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number, body: payload,
+                });
+              }
+            };
+
+            if (failed) {
+              // Post the failure alongside the last good report, which stays
+              // untouched and readable.
+              await upsert(FAILURE_MARKER, body);
+              const lastReport = find(REPORT_MARKER);
+              if (lastReport) {
+                core.notice('Review failed; the previous successful report is preserved above it.');
+              }
             } else {
-              await github.rest.issues.createComment({
-                owner, repo, issue_number, body: payload,
-              });
+              // Success: refresh the report in place (one report per PR,
+              // not a wall of stale ones — DESIGN.md §8.1) and clear any
+              // stale failure notice so it cannot be mistaken for current.
+              await upsert(REPORT_MARKER, body);
+              const staleFailure = find(FAILURE_MARKER);
+              if (staleFailure) {
+                await github.rest.issues.deleteComment({
+                  owner, repo, comment_id: staleFailure.id,
+                });
+              }
             }
 
       - name: Set check status
