@@ -87,11 +87,22 @@ jobs:
           } > report.md
 
       - name: Post or update PR comment
+        # Always post — a comment explaining what happened beats a silent
+        # red X when an earlier step fails for a reason not handled above.
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const body = fs.readFileSync('report.md', 'utf8');
+            let body;
+            try {
+              body = fs.readFileSync('report.md', 'utf8');
+            } catch {
+              body = '## ⚠️ Accessibility review did not run\n\n' +
+                'This PR has **not** been checked for accessibility — ' +
+                'the CI job failed before a report could be generated. ' +
+                'Check the workflow run logs for the actual error.';
+            }
             const marker = '<!-- a11y-review-agent -->';
             const { owner, repo } = context.repo;
             const issue_number = context.payload.pull_request.number;
@@ -115,8 +126,9 @@ jobs:
             }
 
       - name: Set check status
+        if: always()
         run: |
-          if [ "${{ steps.review.outputs.status }}" = "failed-open" ]; then
+          if [ ! -f report.md ] || [ "${{ steps.review.outputs.status }}" = "failed-open" ]; then
             echo "::warning::Accessibility review did not run. PR not checked."
             exit 0
           fi
