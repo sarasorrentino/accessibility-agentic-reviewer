@@ -52,6 +52,8 @@ export const Violating_Legacy: StoryObj = {
   name: '❌ Legacy (violating)',
   render: () => <DropdownLegacy options={OPTIONS} onChange={() => {}} />,
   parameters: {
+    // Violates on purpose — report in the panel, never fail.
+    a11y: { test: 'todo' },
     docs: {
       description: {
         story:

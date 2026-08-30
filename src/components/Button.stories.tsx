@@ -50,6 +50,8 @@ export const Violating_Legacy: StoryObj = {
   name: '❌ Legacy (violating)',
   render: () => <ButtonLegacy onPress={() => alert('Activated')}>Confirm</ButtonLegacy>,
   parameters: {
+    // Violates on purpose — report in the panel, never fail.
+    a11y: { test: 'todo' },
     docs: {
       description: {
         story:
