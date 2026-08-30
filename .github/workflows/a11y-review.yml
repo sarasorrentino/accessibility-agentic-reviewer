@@ -48,7 +48,12 @@ jobs:
       # The skill itself is committed in-repo at .claude/skills/a11y-review —
       # no install/copy step needed, Claude Code discovers it automatically.
       - name: Install Claude Code CLI
-        run: curl -fsSL https://downloads.claude.ai/install.sh | bash
+        run: |
+          curl -fsSL https://downloads.claude.ai/install.sh | bash
+          # The installer does not modify PATH for the current shell, and
+          # GitHub Actions steps don't source .bashrc between steps — write
+          # to $GITHUB_PATH so subsequent steps can find the binary.
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Run accessibility review
         id: review
