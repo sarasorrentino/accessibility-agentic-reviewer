@@ -49,11 +49,19 @@ jobs:
       # no install/copy step needed, Claude Code discovers it automatically.
       - name: Install Claude Code CLI
         run: |
-          curl -fsSL https://downloads.claude.ai/install.sh | bash
-          # The installer does not modify PATH for the current shell, and
-          # GitHub Actions steps don't source .bashrc between steps — write
-          # to $GITHUB_PATH so subsequent steps can find the binary.
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          # Installed from npm, which setup-node already puts on PATH.
+          # The previously-used curl|bash installer URL returns 404, and
+          # because curl's failure is hidden by the pipe the step exited 0
+          # while installing nothing — hence "claude: command not found".
+          npm install -g @anthropic-ai/claude-code
+
+          # Fail loudly here rather than three attempts later.
+          if ! command -v claude >/dev/null 2>&1; then
+            echo "::error::claude not on PATH after npm install"
+            npm bin -g || true
+            exit 1
+          fi
+          claude --version
 
       - name: Run accessibility review
         id: review
@@ -64,8 +72,6 @@ jobs:
         run: |
           set -o pipefail
           # Two retries, then fail open with a visible notice (DESIGN.md §8.4).
-          claude --version || echo "claude --version failed"
-
           for attempt in 1 2 3; do
             echo "=== Attempt $attempt ==="
             # Agent is required: the skill's core step spawns one subagent
