@@ -149,8 +149,11 @@ PASS       → everything else
 
 Pre-existing 🔴, 🟡, and 🔵 never block. This is what makes the check safe to switch on over an existing codebase: the first run surfaces the accumulated debt without freezing the team.
 
-In **local mode**, print the verdict and stop.
-In **CI mode**, update the existing PR comment in place (never append a new one) and set the check status.
+Print the verdict and stop. **This is where your job ends, in both modes.**
+
+You never post the PR comment, never call `gh`, and never write `report.md`. Your entire output is the report on stdout. In CI the workflow captures that stdout, posts it as a PR comment (updating in place, never appending), and sets the check status by grepping your verdict line — all in steps that run after you, with their own credentials.
+
+So do not report a missing `GITHUB_TOKEN`, an unavailable `Write` tool, or an unposted comment as a problem: none of those are yours to have. Treating them as failures produces a report that claims the integration is broken when it is working.
 
 ## Failure handling
 
