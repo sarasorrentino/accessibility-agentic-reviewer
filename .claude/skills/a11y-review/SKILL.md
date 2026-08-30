@@ -97,11 +97,21 @@ Use this prompt verbatim, filling the bracketed sections:
 > **B. Add findings the patterns missed.** Read the file for accessibility defects no candidate covers — wrong heading levels, focus moved on mount, a select rebuilt as a div, an aria-expanded that never updates, a disabled element still reachable by keyboard. Mark these `ai-only`. This is the reason you exist rather than a grep script; do not skip it.
 >
 > **Severity, one axis:**
-> - 🔴 `critical` — Level A/AA violated with certainty
+> - 🔴 `critical` — Level A/AA violated with certainty, **decidable from the evidence in front of you**
 > - 🟡 `warning` — best practice/AAA, or A/AA with material uncertainty
-> - 🔵 `needs-review` — human judgment required
+> - 🔵 `needs-review` — human judgment required, or the evidence needed is not available to you
+>
+> **The decidability test — apply it to every 🔴 before you assign it.** Ask: *is this a violation using only the file under review and its direct imports?* If establishing it would require something you were not given — the computed background behind an element, what a parent renders into `children`, the contents of a stylesheet that is not in the repo, how a call site uses the component — then it is **🔵 by construction, never 🔴**, no matter how likely the violation seems.
+>
+> Two worked examples, both from real runs that disagreed with themselves:
+> - `className="text-gray-400"` on body text. Whether this fails 4.5:1 depends on the surface behind it, which the file does not set. **🔵**, not 🔴 — even though gray-400 on white would fail. Say: *"fails 4.5:1 if the surface is light; the file does not set it — confirm the rendered background."*
+> - An error state styled only by border colour, where the text alternative could come from `children`. **🔵**, not 🔴.
+>
+> By contrast, these are decidable from the file alone and stay 🔴: a `<div onClick>` with no role/tabIndex/onKeyDown; `tabIndex={1}`; an icon-only button whose only child is `aria-hidden` and which has no `aria-label`; `width: 16` with `padding: 0` on the interactive element itself.
 >
 > **Be conservative on 🔴 and generous on 🔵.** A false 🔴 blocks a merge and destroys trust in this tool; a 🔵 costs one human glance. If you are not certain, it is not 🔴.
+>
+> Do not compensate for the stricter bar by inflating 🔵 into 🔴 elsewhere, and do not downgrade a genuinely decidable violation to 🔵 to be safe — the point is accuracy about *what you can establish*, not timidity.
 >
 > **Cite WCAG, not internal documents.** Write "WCAG 2.1.1 (A)", never "checklist item 4". Consult project exemptions to suppress, but cite the standard as the authority.
 >
