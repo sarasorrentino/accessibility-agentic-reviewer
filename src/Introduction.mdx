@@ -1,0 +1,103 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+# Accessibility-first design system
+
+A deliberately small design system where **WCAG 2.1/2.2 Level AA conformance is a property of the
+tokens and component APIs**, not something added afterwards. Every component ships in two versions:
+
+- **Conforming** — uses the tokens, passes AA.
+- **`Legacy` (violating)** — contains deliberate defects, kept so they can be inspected, measured,
+  and used to evaluate the automated review agent.
+
+Open the **Accessibility** panel on any story to see axe-core's verdict, then compare it with the
+documented defects. The gap between the two is the point of this project.
+
+---
+
+## Accessibility tokens
+
+A token is an *accessibility token* not because of its name, but because **its definition carries the
+WCAG constraint as a binding**. The value cannot change without breaking conformance.
+
+Each entry in `tokens/a11y.json` carries an `$a11y` block naming the criterion, the level, the
+threshold, and the ratios measured against every surface it is approved for.
+
+### Text — WCAG 1.4.3 (AA), ≥ 4.5:1
+
+| Token | Value | On `surface.default` | |
+|---|---|---|---|
+| `color.text.primary` | gray.900 | 16.75:1 | ✅ |
+| `color.text.secondary` | gray.600 | 7.23:1 | ✅ |
+| `color.text.error` | red.600 | 5.74:1 | ✅ |
+| `color.text.disabled` | gray.400 | 2.54:1 | ⚪ exempt |
+
+`color.text.disabled` carries `$a11y.exempt: true` — WCAG explicitly exempts disabled components.
+**The exemption is scoped to that condition.** Applied to live content it is a real 1.4.3 failure,
+which is exactly the defect in `CardLegacy`.
+
+### Focus — WCAG 2.4.7 (AA), ≥ 3:1
+
+| Token | Value | Note |
+|---|---|---|
+| `color.focus.ring` | indigo.600 | 8.59:1 on the default surface |
+| `color.focus.ring.on-brand` | white | The indigo ring is invisible on the indigo brand surface |
+| `space.focus.width` | 2px | |
+| `space.focus.offset` | 2px | Keeps the ring clear of the component edge |
+
+Two focus tokens exist because one is not enough — a ring that disappears on your own brand colour
+is a defect discovered late, in production.
+
+### Touch targets — WCAG 2.5.8 (AA)
+
+| Token | Value | Note |
+|---|---|---|
+| `space.touch.absolute-min` | 24px | The legal minimum. Do not use unless unavoidable. |
+| `space.touch.min` | 44px | The default. iOS HIG best practice. |
+| `space.touch.gap` | 8px | Minimum spacing between adjacent targets. |
+
+Keeping both values documents *why* 44px is the default without ambiguity.
+
+### Motion — WCAG 2.3.3 (AAA)
+
+`duration.interaction` (150ms), `duration.enter` (200ms), `duration.exit` (150ms) — all zeroed by a
+**single** `@media (prefers-reduced-motion: reduce)` block at `:root`. One override for the whole
+system is far more robust than handling it per component, and it is why a hardcoded `200ms` in a
+component is an anti-pattern: it silently escapes the override.
+
+---
+
+## How conformance is enforced
+
+Three layers, in order of cost:
+
+| Layer | Catches | Cost |
+|---|---|---|
+| Deterministic pattern scan | Known textual anti-patterns | Free — plain Node |
+| axe-core (this Storybook's a11y panel) | Mechanically decidable DOM defects | Free — runs in the browser |
+| AI review agent | Intent, context, cross-file structure | Per-run |
+
+The third layer exists for what the first two structurally cannot decide: *is this focus trap
+intentional?* *Does this error state have a non-colour alternative somewhere?* *Should this `div`
+have been a `button`?*
+
+Try it yourself: open **Button → ❌ Legacy**, where axe-core reports nothing at all, and read the
+three real Level A/AA defects documented on that story.
+
+---
+
+## Known defects in the conforming components
+
+Found by the review agent during evaluation, in code that had been written and reviewed as correct.
+Left unfixed so the findings stay reproducible:
+
+| Component | Criterion | Defect |
+|---|---|---|
+| `Dropdown` | 2.1.1 (A) | `preventDefault()` on Enter/Space cancels the trigger's activation — the list cannot be opened by keyboard |
+| `Modal` | 2.4.3 (A) | Focus restore is unguarded against initial mount |
+| `Card` | 1.3.1 (A) | Wrapping the card in a `<button>` makes the `<h3>` presentational |
+| `Toast` | 2.2.1 (A) | Fixed 5s auto-dismiss with no pause or extend |
+
+See `EVAL-RUN-1.md` and `EVAL-RUN-2.md` for the full evaluation, including the false-positive traps
+and the run-to-run variance measurements.

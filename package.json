@@ -7,16 +7,22 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "a11y:scan": "node .claude/skills/a11y-review/scripts/scan-patterns.mjs --base main"
+    "a11y:scan": "node .claude/skills/a11y-review/scripts/scan-patterns.mjs --base main",
+    "storybook": "storybook dev -p 6006 --no-open",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@storybook/addon-a11y": "^10.5.10",
+    "@storybook/addon-docs": "^10.5.10",
+    "@storybook/react-vite": "^10.5.10",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "storybook": "^10.5.10",
     "typescript": "~5.9.3",
     "vite": "^7.2.4"
   }
