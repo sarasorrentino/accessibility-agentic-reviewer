@@ -1,0 +1,244 @@
+/*
+ * Component styles for the fixture.
+ *
+ * Deliberately NOT "fixing" the violating components: they are styled just
+ * enough to render realistically, so their defects are visible and testable
+ * in a browser. The conforming versions use tokens; the *Legacy versions
+ * bypass them, which is the point.
+ */
+
+/* --- Button --- */
+
+.btn {
+  font: inherit;
+  padding: 0 16px;
+  min-height: var(--space-touch-min);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn--primary {
+  background: var(--color-indigo-600);
+  color: var(--color-white);
+}
+
+.btn--secondary {
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-input);
+}
+
+.btn:disabled {
+  background: var(--color-gray-200);
+  color: var(--color-text-disabled);
+  border-color: var(--color-border-disabled);
+  cursor: not-allowed;
+}
+
+/*
+ * Indigo focus ring on an indigo button is invisible — the trap documented
+ * in the token system. The on-brand token exists precisely for this.
+ */
+.btn--primary:focus-visible {
+  outline-color: var(--color-focus-ring-on-brand);
+  box-shadow: 0 0 0 4px var(--color-indigo-600);
+}
+
+/* --- Card --- */
+
+.card {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--color-border-input);
+  border-radius: 8px;
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  text-align: left;
+  font: inherit;
+}
+
+.card--selectable {
+  cursor: pointer;
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.card__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+}
+
+/* --- Form field --- */
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-field__label {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+.form-field input {
+  font: inherit;
+  min-height: var(--space-touch-min);
+  padding: 0 12px;
+  border: 1px solid var(--color-border-input);
+  border-radius: 6px;
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+}
+
+.form-field__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text-error);
+}
+
+/* --- Dropdown --- */
+
+.dropdown {
+  position: relative;
+}
+
+.dropdown button,
+.dropdown__trigger {
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  min-height: var(--space-touch-min);
+  border: 1px solid var(--color-border-input);
+  border-radius: 6px;
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.dropdown ul {
+  position: absolute;
+  z-index: 10;
+  margin: 4px 0 0;
+  padding: 4px;
+  min-width: 200px;
+  list-style: none;
+  border: 1px solid var(--color-border-input);
+  border-radius: 6px;
+  background: var(--color-surface-default);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
+}
+
+.dropdown li {
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dropdown li.is-active {
+  background: var(--color-surface-subtle);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+/* --- Modal --- */
+
+.modal__overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 50%);
+  z-index: 100;
+}
+
+.modal__overlay > div {
+  padding: 24px;
+  border-radius: 12px;
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  max-height: 90vh;
+  overflow: auto;
+}
+
+/* --- Toast --- */
+
+.toast,
+.toast--visual {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: var(--color-text-primary);
+  color: var(--color-white);
+  z-index: 200;
+}
+
+/* --- Sortable list --- */
+
+.sortable-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-touch-gap);
+}
+
+.sortable-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-input);
+  border-radius: 6px;
+  background: var(--color-surface-default);
+}
+
+.sortable-list li span:first-child {
+  flex: 1;
+}
+
+.sortable-list button {
+  font: inherit;
+  border: 1px solid var(--color-border-input);
+  border-radius: 4px;
+  background: var(--color-surface-default);
+  cursor: pointer;
+}
+
+.drag-handle {
+  display: inline-block;
+  background: var(--color-gray-400);
+  border-radius: 2px;
+  cursor: grab;
+}
+
+/*
+ * --- Raw colour utilities ---
+ * Only here so the *Legacy components render the colours they hardcode.
+ * Their existence is the anti-pattern: they bypass the token system, so no
+ * contrast pair is documented or verified. Never add these to a real DS.
+ */
+.text-gray-900 { color: var(--color-gray-900); }
+.text-gray-400 { color: var(--color-gray-400); }  /* ~2.5:1 — fails 1.4.3 */
+.text-red-500  { color: var(--color-red-500); }   /* unverified vs 4.5:1 */
+.border-gray-200 { border-color: var(--color-gray-200); }
+.border-gray-300 { border-color: #d1d5db; }
+.border-red-500  { border-color: var(--color-red-500); }
